@@ -36,7 +36,7 @@ import {
   Textarea
 } from '@chakra-ui/react';
 import { FiCalendar, FiChevronLeft, FiChevronRight, FiPlus, FiMoreVertical, FiClock, FiUser, FiMapPin } from 'react-icons/fi';
-import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, parseISO, addDays } from 'date-fns';
+import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import AdminLayout from './Layout';
 
@@ -103,8 +103,8 @@ const CalendarView = () => {
     return events.filter(event => {
       const eventDate = new Date(event.date);
       return eventDate.getDate() === day.getDate() && 
-             eventDate.getMonth() === day.getMonth() && 
-             eventDate.getFullYear() === day.getFullYear();
+              eventDate.getMonth() === day.getMonth() && 
+              eventDate.getFullYear() === day.getFullYear();
     });
   };
 
@@ -231,9 +231,9 @@ const CalendarView = () => {
                 const dayEvents = events.filter(event => {
                   const eventDate = new Date(event.date);
                   return eventDate.getDate() === day.getDate() && 
-                         eventDate.getMonth() === day.getMonth() && 
-                         eventDate.getFullYear() === day.getFullYear() &&
-                         eventDate.getHours() === hour;
+                        eventDate.getMonth() === day.getMonth() && 
+                        eventDate.getFullYear() === day.getFullYear() &&
+                        eventDate.getHours() === hour;
                 });
                 
                 return (
