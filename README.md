@@ -1,6 +1,9 @@
 # Sistema de Agendamento para Equipes de Campo
 
-Este projeto é um sistema de agendamento para controle de equipes de campo, permitindo o gerenciamento de visitas, clientes e serviços.
+Este projeto é um sistema de agendamento para controle de equipes em campo, permitindo o gerenciamento de visitas, clientes e serviços.
+
+## Screenshots
+![image](https://github.com/danilobsantos/agendamento-visita-tecnica/dashboard.png)
 
 ## Funcionalidades
 
