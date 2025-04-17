@@ -1,0 +1,34 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3182CE" />
+      <stop offset="100%" style="stop-color:#2B6CB0" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Círculo de fundo -->
+  <circle cx="100" cy="100" r="90" fill="white" stroke="url(#logoGradient)" stroke-width="4" />
+  
+  <!-- Calendário -->
+  <rect x="50" y="50" width="100" height="100" rx="10" fill="url(#logoGradient)" />
+  
+  <!-- Linhas do calendário -->
+  <line x1="50" y1="75" x2="150" y2="75" stroke="white" stroke-width="3" />
+  
+  <!-- Dias da semana (pontos) -->
+  <circle cx="70" cy="90" r="5" fill="white" />
+  <circle cx="100" cy="90" r="5" fill="white" />
+  <circle cx="130" cy="90" r="5" fill="white" />
+  
+  <circle cx="70" cy="110" r="5" fill="white" />
+  <circle cx="100" cy="110" r="5" fill="white" />
+  <circle cx="130" cy="110" r="5" fill="white" />
+  
+  <circle cx="70" cy="130" r="5" fill="white" />
+  <circle cx="100" cy="130" r="5" fill="white" />
+  <circle cx="130" cy="130" r="8" fill="white" stroke="url(#logoGradient)" stroke-width="2" />
+  
+  <!-- Ponteiros de relógio no círculo destacado -->
+  <line x1="130" y1="130" x2="130" y2="124" stroke="url(#logoGradient)" stroke-width="2" />
+  <line x1="130" y1="130" x2="135" y2="133" stroke="url(#logoGradient)" stroke-width="2" />
+</svg>
