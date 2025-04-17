@@ -205,13 +205,27 @@ model Service {
 - Detalhes da visita (com mapa e informações)
 - Registro de conclusão de serviço
 
-## Próximos Passos
+## Status do Projeto
 
-1. Configurar o ambiente de desenvolvimento
-2. Inicializar o projeto backend com Node.js, Express e Prisma
-3. Inicializar o projeto frontend com React
-4. Implementar autenticação e autorização
-5. Desenvolver os endpoints da API
-6. Desenvolver as interfaces do frontend
-7. Implementar os relatórios
-8. Testar e refinar o sistema
+✅ Ambiente de desenvolvimento configurado
+✅ Backend inicializado com Node.js, Express e Prisma
+✅ Frontend inicializado com React e Vite
+✅ Estrutura de autenticação implementada
+🔄 Desenvolvimento dos endpoints da API em andamento
+🔄 Desenvolvimento das interfaces do frontend em andamento
+⏳ Implementação dos relatórios pendente
+⏳ Testes e refinamentos pendentes
+
+## Tecnologias Utilizadas
+
+### Backend
+- Node.js com Express
+- Prisma ORM
+- PostgreSQL
+- JWT para autenticação
+
+### Frontend
+- React com Vite
+- React Router DOM
+- Axios para requisições HTTP
+- Tailwind CSS para estilização

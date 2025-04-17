@@ -1,6 +1,6 @@
 # Sistema de Agendamento para Equipes de Campo
 
-Este projeto é um sistema de agendamento para controle de equipes em campo, permitindo o gerenciamento de visitas, clientes e serviços.
+Sistema para gerenciamento de agendamentos e visitas de equipes de campo, com interfaces específicas para administradores, vendedores e equipes.
 
 ## Screenshots
 ![image](https://github.com/danilobsantos/agendamento-visita-tecnica/blob/main/dashboard.png)
@@ -15,16 +15,76 @@ Este projeto é um sistema de agendamento para controle de equipes em campo, per
 - Informações detalhadas de serviços para equipe de campo (foto, localização, etc.)
 - Registro de conclusão de serviços
 
-## Tecnologias
+## Tecnologias Utilizadas
 
 ### Backend
-- Node.js
-- Express
+- Node.js com Express
 - Prisma ORM
 - PostgreSQL
+- JWT para autenticação
 
 ### Frontend
-- React
+- React com Vite
+- React Router DOM
+- Axios
+- Tailwind CSS
+
+## Pré-requisitos
+
+- Node.js >= 18
+- PostgreSQL >= 14
+- NPM ou Yarn
+
+## Instalação
+
+### Backend
+
+1. Entre na pasta da API:
+```bash
+cd api
+```
+
+2. Instale as dependências:
+```bash
+npm install
+```
+
+3. Configure as variáveis de ambiente:
+```bash
+cp .env.example .env
+```
+
+4. Execute as migrações do banco de dados:
+```bash
+npx prisma migrate dev
+```
+
+5. Inicie o servidor:
+```bash
+npm run dev
+```
+
+### Frontend
+
+1. Entre na pasta web:
+```bash
+cd web
+```
+
+2. Instale as dependências:
+```bash
+npm install
+```
+
+3. Configure as variáveis de ambiente:
+```bash
+cp .env.example .env
+```
+
+4. Inicie o servidor de desenvolvimento:
+```bash
+npm run dev
+```
 
 ## Estrutura do Projeto
 
