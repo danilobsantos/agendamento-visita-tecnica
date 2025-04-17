@@ -11,6 +11,7 @@ import AdminDashboard from './pages/admin/Dashboard';
 import AdminCalendar from './pages/admin/Calendar';
 import AdminTeams from './pages/admin/Teams';
 import AdminClients from './pages/admin/Clients';
+import AdminServices from './pages/admin/Services';
 
 /**
  * Configuração das rotas da aplicação com proteção baseada em autenticação e papéis
@@ -66,6 +67,22 @@ const Routes = () => {
           element: (
             <ProtectedRoute allowedRoles={['ADMIN']}>
               <AdminClients />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: '/admin/visits',
+          element: (
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminCalendar />
+            </ProtectedRoute>
+          ),
+        },
+        {
+          path: '/admin/services',
+          element: (
+            <ProtectedRoute allowedRoles={['ADMIN']}>
+              <AdminServices />
             </ProtectedRoute>
           ),
         },

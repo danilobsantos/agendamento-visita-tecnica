@@ -39,6 +39,7 @@ import {
 } from '@chakra-ui/react';
 import { FiPlus, FiEdit2, FiTrash2, FiMoreVertical, FiUserPlus, FiUsers } from 'react-icons/fi';
 import AdminLayout from './Layout';
+import { adminService } from '../../services/adminService';
 // import { api } from '../../services/api'; // Descomente quando estiver pronto para integrar com a API
 
 const TeamsPage = () => {
@@ -49,61 +50,21 @@ const TeamsPage = () => {
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
 
-  // Dados de exemplo para equipes
   useEffect(() => {
-    // Simulando carregamento de dados da API
-    setLoading(true);
-    setTimeout(() => {
-      setTeams([
-        {
-          id: '1',
-          name: 'Equipe A',
-          members: [
-            { id: '101', name: 'João Silva', email: 'joao@exemplo.com' },
-            { id: '102', name: 'Maria Oliveira', email: 'maria@exemplo.com' },
-            { id: '103', name: 'Carlos Santos', email: 'carlos@exemplo.com' },
-          ],
-          createdAt: '2023-05-15T10:30:00Z',
-        },
-        {
-          id: '2',
-          name: 'Equipe B',
-          members: [
-            { id: '201', name: 'Ana Pereira', email: 'ana@exemplo.com' },
-            { id: '202', name: 'Paulo Mendes', email: 'paulo@exemplo.com' },
-          ],
-          createdAt: '2023-06-20T14:45:00Z',
-        },
-        {
-          id: '3',
-          name: 'Equipe C',
-          members: [
-            { id: '301', name: 'Fernanda Lima', email: 'fernanda@exemplo.com' },
-            { id: '302', name: 'Roberto Alves', email: 'roberto@exemplo.com' },
-            { id: '303', name: 'Juliana Costa', email: 'juliana@exemplo.com' },
-            { id: '304', name: 'Marcos Souza', email: 'marcos@exemplo.com' },
-          ],
-          createdAt: '2023-07-10T09:15:00Z',
-        },
-      ]);
-      setLoading(false);
-    }, 1000);
-
-    // Quando estiver pronto para integrar com a API, descomente o código abaixo
-    // const fetchTeams = async () => {
-    //   try {
-    //     setLoading(true);
-    //     const response = await api.get('/teams');
-    //     setTeams(response.data);
-    //     setError(null);
-    //   } catch (err) {
-    //     setError('Erro ao carregar equipes. Por favor, tente novamente.');
-    //     console.error(err);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
-    // fetchTeams();
+    const fetchTeams = async () => {
+      try {
+        setLoading(true);
+        const response = await adminService.getTeams();
+        setTeams(response);
+        setError(null);
+      } catch (err) {
+        setError('Erro ao carregar equipes. Por favor, tente novamente.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTeams();
   }, []);
 
   const handleOpenModal = (team = null) => {
@@ -111,16 +72,40 @@ const TeamsPage = () => {
     onOpen();
   };
 
-  const handleSaveTeam = () => {
-    // Implementar lógica para salvar equipe
-    toast({
-      title: selectedTeam ? 'Equipe atualizada' : 'Equipe criada',
-      description: `A equipe foi ${selectedTeam ? 'atualizada' : 'criada'} com sucesso!`,
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
-    onClose();
+  const handleSaveTeam = async (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const teamData = {
+      name: formData.get('teamName')
+    };
+
+    try {
+      if (selectedTeam) {
+        await adminService.updateTeam(selectedTeam.id, teamData);
+      } else {
+        await adminService.createTeam(teamData);
+      }
+
+      const updatedTeams = await adminService.getTeams();
+      setTeams(updatedTeams);
+
+      toast({
+        title: selectedTeam ? 'Equipe atualizada' : 'Equipe criada',
+        description: `A equipe foi ${selectedTeam ? 'atualizada' : 'criada'} com sucesso!`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      onClose();
+    } catch {
+      toast({
+        title: 'Erro',
+        description: `Erro ao ${selectedTeam ? 'atualizar' : 'criar'} equipe. Por favor, tente novamente.`,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const handleDeleteTeam = (teamId) => {
@@ -231,13 +216,15 @@ const TeamsPage = () => {
             <ModalHeader>{selectedTeam ? 'Editar Equipe' : 'Nova Equipe'}</ModalHeader>
             <ModalCloseButton />
             <ModalBody pb={6}>
-              <VStack spacing={4} align="stretch">
-                <FormControl isRequired>
-                  <FormLabel>Nome da Equipe</FormLabel>
-                  <Input 
-                    placeholder="Nome da equipe" 
-                    defaultValue={selectedTeam?.name || ''}
-                  />
+              <form id="teamForm" onSubmit={handleSaveTeam}>
+                <VStack spacing={4} align="stretch">
+                  <FormControl isRequired>
+                    <FormLabel>Nome da Equipe</FormLabel>
+                    <Input 
+                      name="teamName"
+                      placeholder="Nome da equipe" 
+                      defaultValue={selectedTeam?.name || ''}
+                    />
                 </FormControl>
 
                 {selectedTeam && (
@@ -269,10 +256,11 @@ const TeamsPage = () => {
                   </Box>
                 )}
               </VStack>
+              </form>
             </ModalBody>
 
             <ModalFooter>
-              <Button colorScheme="blue" mr={3} onClick={handleSaveTeam}>
+              <Button type="submit" form="teamForm" colorScheme="blue" mr={3}>
                 Salvar
               </Button>
               <Button onClick={onClose}>Cancelar</Button>

@@ -38,95 +38,39 @@ import {
   AlertIcon,
   InputGroup,
   InputLeftElement,
-  Select
+  Select,
+  Icon
 } from '@chakra-ui/react';
-import { FiPlus, FiEdit2, FiTrash2, FiMoreVertical, FiSearch, FiUser, FiMapPin, FiPhone, FiMail } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiMoreVertical, FiSearch, FiUser, FiMapPin, FiPhone, FiMail, FiCalendar } from 'react-icons/fi';
 import AdminLayout from './Layout';
+import { adminService } from '../../services/adminService';
 // import { api } from '../../services/api'; // Descomente quando estiver pronto para integrar com a API
+import { Link as RouterLink } from 'react-router-dom';
 
 const ClientsPage = () => {
   const [clients, setClients] = useState([]);
   const [selectedClient, setSelectedClient] = useState(null);
   const [loading, setLoading] = useState(false);
-  // eslint-disable-next-line no-unused-vars
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const { isOpen, onOpen, onClose } = useDisclosure();
   const toast = useToast();
 
-  // Dados de exemplo para clientes
   useEffect(() => {
-    // Simulando carregamento de dados da API
-    setLoading(true);
-    setTimeout(() => {
-      setClients([
-        {
-          id: '1',
-          name: 'João Silva',
-          address: 'Rua das Flores, 123',
-          city: 'São Paulo',
-          state: 'SP',
-          zipCode: '01234-567',
-          phone: '(11) 98765-4321',
-          email: 'joao.silva@exemplo.com',
-          createdAt: '2023-05-10T14:30:00Z',
-          visitsCount: 5
-        },
-        {
-          id: '2',
-          name: 'Maria Oliveira',
-          address: 'Av. Principal, 456',
-          city: 'Rio de Janeiro',
-          state: 'RJ',
-          zipCode: '20000-000',
-          phone: '(21) 98765-4321',
-          email: 'maria.oliveira@exemplo.com',
-          createdAt: '2023-06-15T10:45:00Z',
-          visitsCount: 3
-        },
-        {
-          id: '3',
-          name: 'Carlos Mendes',
-          address: 'Rua Secundária, 789',
-          city: 'Belo Horizonte',
-          state: 'MG',
-          zipCode: '30000-000',
-          phone: '(31) 98765-4321',
-          email: 'carlos.mendes@exemplo.com',
-          createdAt: '2023-07-20T09:15:00Z',
-          visitsCount: 1
-        },
-        {
-          id: '4',
-          name: 'Ana Pereira',
-          address: 'Rua das Palmeiras, 321',
-          city: 'Curitiba',
-          state: 'PR',
-          zipCode: '80000-000',
-          phone: '(41) 98765-4321',
-          email: 'ana.pereira@exemplo.com',
-          createdAt: '2023-08-05T16:20:00Z',
-          visitsCount: 0
-        },
-      ]);
-      setLoading(false);
-    }, 1000);
-
-    // Quando estiver pronto para integrar com a API, descomente o código abaixo
-    // const fetchClients = async () => {
-    //   try {
-    //     setLoading(true);
-    //     const response = await api.get('/clients');
-    //     setClients(response.data);
-    //     setError(null);
-    //   } catch (err) {
-    //     setError('Erro ao carregar clientes. Por favor, tente novamente.');
-    //     console.error(err);
-    //   } finally {
-    //     setLoading(false);
-    //   }
-    // };
-    // fetchClients();
+    const fetchClients = async () => {
+      try {
+        setLoading(true);
+        const response = await adminService.getClients();
+        setClients(response);
+        setError(null);
+      } catch (err) {
+        setError('Erro ao carregar clientes. Por favor, tente novamente.');
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchClients();
   }, []);
 
   const handleOpenModal = (client = null) => {
@@ -134,16 +78,46 @@ const ClientsPage = () => {
     onOpen();
   };
 
-  const handleSaveClient = () => {
-    // Implementar lógica para salvar cliente
-    toast({
-      title: selectedClient ? 'Cliente atualizado' : 'Cliente criado',
-      description: `O cliente foi ${selectedClient ? 'atualizado' : 'criado'} com sucesso!`,
-      status: 'success',
-      duration: 3000,
-      isClosable: true,
-    });
-    onClose();
+  const handleSaveClient = async (event) => {
+    event.preventDefault();
+    const formData = new FormData(event.target);
+    const clientData = {
+      name: formData.get('name'),
+      phone: formData.get('phone'),
+      email: formData.get('email'),
+      address: formData.get('address'),
+      city: formData.get('city'),
+      state: formData.get('state'),
+      zipCode: formData.get('zipCode')
+    };
+
+    try {
+      if (selectedClient) {
+        await adminService.updateClient(selectedClient.id, clientData);
+      } else {
+        await adminService.createClient(clientData);
+      }
+
+      const updatedClients = await adminService.getClients();
+      setClients(updatedClients);
+
+      toast({
+        title: selectedClient ? 'Cliente atualizado' : 'Cliente criado',
+        description: `O cliente foi ${selectedClient ? 'atualizado' : 'criado'} com sucesso!`,
+        status: 'success',
+        duration: 3000,
+        isClosable: true,
+      });
+      onClose();
+    } catch (error) {
+      toast({
+        title: 'Erro',
+        description: `Erro ao ${selectedClient ? 'atualizar' : 'criar'} cliente. Por favor, tente novamente.`,
+        status: 'error',
+        duration: 3000,
+        isClosable: true,
+      });
+    }
   };
 
   const handleDeleteClient = (clientId) => {
@@ -289,105 +263,114 @@ const ClientsPage = () => {
           <ModalContent>
             <ModalHeader>{selectedClient ? 'Editar Cliente' : 'Novo Cliente'}</ModalHeader>
             <ModalCloseButton />
-            <ModalBody pb={6}>
-              <VStack spacing={4} align="stretch">
-                <FormControl isRequired>
-                  <FormLabel>Nome</FormLabel>
-                  <Input 
-                    placeholder="Nome completo" 
-                    defaultValue={selectedClient?.name || ''}
-                  />
-                </FormControl>
-
-                <HStack spacing={4}>
+            <form onSubmit={handleSaveClient}>
+              <ModalBody pb={6}>
+                <VStack spacing={4} align="stretch">
                   <FormControl isRequired>
-                    <FormLabel>Telefone</FormLabel>
+                    <FormLabel>Nome</FormLabel>
                     <Input 
-                      placeholder="(00) 00000-0000" 
-                      defaultValue={selectedClient?.phone || ''}
+                      name="name"
+                      placeholder="Nome completo" 
+                      defaultValue={selectedClient?.name || ''}
                     />
                   </FormControl>
 
-                  <FormControl>
-                    <FormLabel>Email</FormLabel>
-                    <Input 
-                      type="email" 
-                      placeholder="email@exemplo.com" 
-                      defaultValue={selectedClient?.email || ''}
-                    />
-                  </FormControl>
-                </HStack>
+                  <HStack spacing={4}>
+                    <FormControl isRequired>
+                      <FormLabel>Telefone</FormLabel>
+                      <Input 
+                        name="phone"
+                        placeholder="(00) 00000-0000" 
+                        defaultValue={selectedClient?.phone || ''}
+                      />
+                    </FormControl>
 
-                <FormControl isRequired>
-                  <FormLabel>Endereço</FormLabel>
-                  <Input 
-                    placeholder="Rua, número, complemento" 
-                    defaultValue={selectedClient?.address || ''}
-                  />
-                </FormControl>
-
-                <HStack spacing={4}>
-                  <FormControl isRequired>
-                    <FormLabel>Cidade</FormLabel>
-                    <Input 
-                      placeholder="Cidade" 
-                      defaultValue={selectedClient?.city || ''}
-                    />
-                  </FormControl>
+                    <FormControl>
+                      <FormLabel>Email</FormLabel>
+                      <Input 
+                        name="email"
+                        type="email" 
+                        placeholder="email@exemplo.com" 
+                        defaultValue={selectedClient?.email || ''}
+                      />
+                    </FormControl>
+                  </HStack>
 
                   <FormControl isRequired>
-                    <FormLabel>Estado</FormLabel>
-                    <Select 
-                      placeholder="Selecione" 
-                      defaultValue={selectedClient?.state || ''}
-                    >
-                      <option value="AC">AC</option>
-                      <option value="AL">AL</option>
-                      <option value="AP">AP</option>
-                      <option value="AM">AM</option>
-                      <option value="BA">BA</option>
-                      <option value="CE">CE</option>
-                      <option value="DF">DF</option>
-                      <option value="ES">ES</option>
-                      <option value="GO">GO</option>
-                      <option value="MA">MA</option>
-                      <option value="MT">MT</option>
-                      <option value="MS">MS</option>
-                      <option value="MG">MG</option>
-                      <option value="PA">PA</option>
-                      <option value="PB">PB</option>
-                      <option value="PR">PR</option>
-                      <option value="PE">PE</option>
-                      <option value="PI">PI</option>
-                      <option value="RJ">RJ</option>
-                      <option value="RN">RN</option>
-                      <option value="RS">RS</option>
-                      <option value="RO">RO</option>
-                      <option value="RR">RR</option>
-                      <option value="SC">SC</option>
-                      <option value="SP">SP</option>
-                      <option value="SE">SE</option>
-                      <option value="TO">TO</option>
-                    </Select>
-                  </FormControl>
-
-                  <FormControl isRequired>
-                    <FormLabel>CEP</FormLabel>
+                    <FormLabel>Endereço</FormLabel>
                     <Input 
-                      placeholder="00000-000" 
-                      defaultValue={selectedClient?.zipCode || ''}
+                      name="address"
+                      placeholder="Rua, número, complemento" 
+                      defaultValue={selectedClient?.address || ''}
                     />
                   </FormControl>
-                </HStack>
-              </VStack>
-            </ModalBody>
 
-            <ModalFooter>
-              <Button colorScheme="blue" mr={3} onClick={handleSaveClient}>
-                Salvar
-              </Button>
-              <Button onClick={onClose}>Cancelar</Button>
-            </ModalFooter>
+                  <HStack spacing={4}>
+                    <FormControl isRequired>
+                      <FormLabel>Cidade</FormLabel>
+                      <Input 
+                        name="city"
+                        placeholder="Cidade" 
+                        defaultValue={selectedClient?.city || ''}
+                      />
+                    </FormControl>
+
+                    <FormControl isRequired>
+                      <FormLabel>Estado</FormLabel>
+                      <Select 
+                        name="state"
+                        placeholder="Selecione" 
+                        defaultValue={selectedClient?.state || ''}
+                      >
+                        <option value="AC">AC</option>
+                        <option value="AL">AL</option>
+                        <option value="AP">AP</option>
+                        <option value="AM">AM</option>
+                        <option value="BA">BA</option>
+                        <option value="CE">CE</option>
+                        <option value="DF">DF</option>
+                        <option value="ES">ES</option>
+                        <option value="GO">GO</option>
+                        <option value="MA">MA</option>
+                        <option value="MT">MT</option>
+                        <option value="MS">MS</option>
+                        <option value="MG">MG</option>
+                        <option value="PA">PA</option>
+                        <option value="PB">PB</option>
+                        <option value="PR">PR</option>
+                        <option value="PE">PE</option>
+                        <option value="PI">PI</option>
+                        <option value="RJ">RJ</option>
+                        <option value="RN">RN</option>
+                        <option value="RS">RS</option>
+                        <option value="RO">RO</option>
+                        <option value="RR">RR</option>
+                        <option value="SC">SC</option>
+                        <option value="SP">SP</option>
+                        <option value="SE">SE</option>
+                        <option value="TO">TO</option>
+                      </Select>
+                    </FormControl>
+
+                    <FormControl isRequired>
+                      <FormLabel>CEP</FormLabel>
+                      <Input 
+                        name="zipCode"
+                        placeholder="00000-000" 
+                        defaultValue={selectedClient?.zipCode || ''}
+                      />
+                    </FormControl>
+                  </HStack>
+                </VStack>
+              </ModalBody>
+
+              <ModalFooter>
+                <Button type="submit" colorScheme="blue" mr={3}>
+                  Salvar
+                </Button>
+                <Button onClick={onClose}>Cancelar</Button>
+              </ModalFooter>
+            </form>
           </ModalContent>
         </Modal>
       </Box>

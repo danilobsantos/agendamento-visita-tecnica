@@ -33,19 +33,31 @@ import {
   FormLabel,
   Input,
   Select,
-  Textarea
+  Textarea,
+  Spinner,
+  Center,
+  useToast
 } from '@chakra-ui/react';
 import { FiCalendar, FiChevronLeft, FiChevronRight, FiPlus, FiMoreVertical, FiClock, FiUser, FiMapPin } from 'react-icons/fi';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, addDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import AdminLayout from './Layout';
+import { visitService } from '../../services/visitService';
+import { adminService } from '../../services/adminService';
+import { serviceService } from '../../services/serviceService';
 
 const CalendarView = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [view, setView] = useState('month'); // 'month' ou 'week'
+  const [view, setView] = useState('month');
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const toast = useToast();
+  const queryClient = useQueryClient();
   
-  // Cores para os diferentes status de agendamento
+  // Mover hooks useColorModeValue para o nível superior do componente
+  const dayBgColor = useColorModeValue('white', 'gray.700');
+  const dayBorderColor = useColorModeValue('gray.200', 'gray.600');
+  
   const statusColors = {
     SCHEDULED: 'blue',
     IN_PROGRESS: 'orange',
@@ -53,39 +65,136 @@ const CalendarView = () => {
     CANCELLED: 'red'
   };
 
-  // Dados de exemplo para agendamentos
-  const [events] = useState([
-    {
-      id: '1',
-      title: 'Instalação de Equipamento',
-      client: 'João Silva',
-      team: 'Equipe A',
-      date: new Date(2023, 9, 15, 10, 0),
-      endTime: new Date(2023, 9, 15, 12, 0),
-      status: 'SCHEDULED',
-      location: 'Rua das Flores, 123'
-    },
-    {
-      id: '2',
-      title: 'Manutenção Preventiva',
-      client: 'Maria Oliveira',
-      team: 'Equipe B',
-      date: new Date(2023, 9, 18, 14, 30),
-      endTime: new Date(2023, 9, 18, 16, 0),
-      status: 'COMPLETED',
-      location: 'Av. Principal, 456'
-    },
-    {
-      id: '3',
-      title: 'Reparo de Emergência',
-      client: 'Carlos Mendes',
-      team: 'Equipe C',
-      date: new Date(2023, 9, 20, 9, 0),
-      endTime: new Date(2023, 9, 20, 11, 0),
-      status: 'IN_PROGRESS',
-      location: 'Rua Secundária, 789'
+  const { data: visits = [], isLoading: visitsLoading } = useQuery({
+    queryKey: ['visits'],
+    queryFn: () => visitService.getVisits(),
+    onError: (error) => {
+      toast({
+        title: 'Erro ao carregar agendamentos',
+        description: error.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
     }
-  ]);
+  });
+
+  const { data: teams = [], isLoading: teamsLoading } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => adminService.getTeams()
+  });
+
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => serviceService.getServices()
+  });
+
+  const { data: clients = [], isLoading: clientsLoading } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => adminService.getClients()
+  });
+
+  const [formData, setFormData] = useState({
+    title: '',
+    clientId: '',
+    date: '',
+    startTime: '',
+    endTime: '',
+    teamId: '',
+    serviceId: '',
+    location: '',
+    description: ''
+  });
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const createVisitMutation = useMutation({
+    mutationFn: (visitData) => {
+      const [date, startTime, endTime] = [visitData.date, visitData.startTime, visitData.endTime];
+      
+      const scheduledDate = new Date(`${date}T${startTime}`);
+      const endDate = endTime ? new Date(`${date}T${endTime}`) : null;
+
+      if (isNaN(scheduledDate.getTime())) {
+        throw new Error('Data ou hora de início inválida');
+      }
+
+      if (endTime && isNaN(endDate.getTime())) {
+        throw new Error('Hora de término inválida');
+      }
+
+      return visitService.createVisit({
+        title: visitData.title,
+        description: visitData.description,
+        date: scheduledDate.toISOString(),
+        startTime: scheduledDate.toISOString(),
+        endTime: endDate?.toISOString() || null,
+        location: visitData.location,
+        clientId: visitData.clientId,
+        teamId: visitData.teamId,
+        serviceIds: visitData.serviceId ? [visitData.serviceId] : []
+      });
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries(['visits']);
+      toast({
+        title: 'Agendamento criado',
+        status: 'success',
+        duration: 3000,
+        isClosable: true
+      });
+      onClose();
+      setFormData({
+        title: '',
+        clientId: '',
+        date: '',
+        startTime: '',
+        endTime: '',
+        teamId: '',
+        serviceId: '',
+        location: '',
+        description: ''
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Erro ao criar agendamento',
+        description: error.message,
+        status: 'error',
+        duration: 3000,
+        isClosable: true
+      });
+    }
+  });
+
+  if (visitsLoading || teamsLoading || servicesLoading || clientsLoading) {
+    return (
+      <AdminLayout>
+        <Center h="100vh">
+          <Spinner size="xl" color="blue.500" />
+        </Center>
+      </AdminLayout>
+    );
+  }
+
+  const events = visits.map(visit => (
+    {
+      id: visit.id,
+      title: visit.service?.name || 'Serviço não encontrado',
+      client: visit.client?.name || 'Cliente não encontrado',
+      team: visit.team?.name || 'Equipe não encontrada',
+      date: new Date(visit.scheduledDate),
+      endTime: new Date(visit.endDate),
+      status: visit.status,
+      location: visit.location
+    }
+  ));
 
   // Navegação do calendário
   const nextMonth = () => setCurrentDate(addMonths(currentDate, 1));
@@ -131,9 +240,9 @@ const CalendarView = () => {
             return (
               <GridItem 
                 key={day.toString()} 
-                bg={isTodayDate ? 'blue.50' : useColorModeValue('white', 'gray.700')}
+                bg={isTodayDate ? 'blue.50' : dayBgColor}
                 borderWidth={isTodayDate ? '1px' : '1px'}
-                borderColor={isTodayDate ? 'blue.500' : useColorModeValue('gray.200', 'gray.600')}
+                borderColor={isTodayDate ? 'blue.500' : dayBorderColor}
                 borderRadius="md"
                 opacity={isCurrentMonth ? 1 : 0.5}
                 minH="120px"
@@ -328,67 +437,129 @@ const CalendarView = () => {
               <VStack spacing={4} align="stretch">
                 <FormControl isRequired>
                   <FormLabel>Título</FormLabel>
-                  <Input placeholder="Título do agendamento" />
+                  <Input
+                    name="title"
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    placeholder="Título do agendamento"
+                  />
                 </FormControl>
                 
                 <FormControl isRequired>
                   <FormLabel>Cliente</FormLabel>
-                  <Select placeholder="Selecione o cliente">
-                    <option value="cliente1">João Silva</option>
-                    <option value="cliente2">Maria Oliveira</option>
-                    <option value="cliente3">Carlos Mendes</option>
+                  <Select
+                    name="clientId"
+                    value={formData.clientId}
+                    onChange={handleInputChange}
+                    placeholder="Selecione o cliente"
+                  >
+                    {clients.map(client => (
+                      <option key={client.id} value={client.id}>{client.name}</option>
+                    ))}
                   </Select>
                 </FormControl>
                 
                 <HStack>
                   <FormControl isRequired>
                     <FormLabel>Data</FormLabel>
-                    <Input type="date" />
+                    <Input
+                      name="date"
+                      type="date"
+                      value={formData.date}
+                      onChange={handleInputChange}
+                    />
                   </FormControl>
                   
                   <FormControl isRequired>
                     <FormLabel>Hora Início</FormLabel>
-                    <Input type="time" />
+                    <Input
+                      name="startTime"
+                      type="time"
+                      value={formData.startTime}
+                      onChange={handleInputChange}
+                    />
                   </FormControl>
                   
                   <FormControl>
                     <FormLabel>Hora Fim</FormLabel>
-                    <Input type="time" />
+                    <Input
+                      name="endTime"
+                      type="time"
+                      value={formData.endTime}
+                      onChange={handleInputChange}
+                    />
                   </FormControl>
                 </HStack>
                 
                 <FormControl isRequired>
                   <FormLabel>Equipe</FormLabel>
-                  <Select placeholder="Selecione a equipe">
-                    <option value="equipe1">Equipe A</option>
-                    <option value="equipe2">Equipe B</option>
-                    <option value="equipe3">Equipe C</option>
+                  <Select
+                    name="teamId"
+                    value={formData.teamId}
+                    onChange={handleInputChange}
+                    placeholder="Selecione a equipe"
+                  >
+                    {teams.map(team => (
+                      <option key={team.id} value={team.id}>{team.name}</option>
+                    ))}
                   </Select>
                 </FormControl>
                 
                 <FormControl>
                   <FormLabel>Serviços</FormLabel>
-                  <Select placeholder="Selecione o serviço">
-                    <option value="servico1">Instalação</option>
-                    <option value="servico2">Manutenção</option>
-                    <option value="servico3">Reparo</option>
+                  <Select
+                    name="serviceId"
+                    value={formData.serviceId}
+                    onChange={handleInputChange}
+                    placeholder="Selecione o serviço"
+                  >
+                    {services.map(service => (
+                      <option key={service.id} value={service.id}>{service.name}</option>
+                    ))}
                   </Select>
                 </FormControl>
                 
                 <FormControl>
                   <FormLabel>Localização</FormLabel>
-                  <Input placeholder="Endereço do agendamento" />
+                  <Input
+                    name="location"
+                    value={formData.location}
+                    onChange={handleInputChange}
+                    placeholder="Endereço do agendamento"
+                  />
                 </FormControl>
                 
                 <FormControl>
                   <FormLabel>Descrição</FormLabel>
-                  <Textarea placeholder="Detalhes do agendamento" />
+                  <Textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    placeholder="Detalhes do agendamento"
+                  />
                 </FormControl>
               </VStack>
             </ModalBody>
 
             <ModalFooter>
-              <Button colorScheme="blue" mr={3}>
+              <Button
+                colorScheme="blue"
+                mr={3}
+                isLoading={createVisitMutation.isPending}
+                onClick={() => {
+                  if (!formData.title || !formData.clientId || !formData.date || !formData.startTime || !formData.teamId) {
+                    toast({
+                      title: 'Campos obrigatórios',
+                      description: 'Por favor, preencha todos os campos obrigatórios',
+                      status: 'error',
+                      duration: 3000,
+                      isClosable: true
+                    });
+                    return;
+                  }
+                  createVisitMutation.mutate(formData);
+                }}
+              >
                 Salvar
               </Button>
               <Button onClick={onClose}>Cancelar</Button>

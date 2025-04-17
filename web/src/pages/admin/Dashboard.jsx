@@ -1,4 +1,4 @@
-import { useState } from 'react';
+
 import {
   Box,
   Flex,
@@ -22,36 +22,78 @@ import {
   MenuItem,
   IconButton,
   useColorModeValue,
-  Link
+  Link,
+  Spinner,
+  Center
 } from '@chakra-ui/react';
 import { Link as RouterLink } from 'react-router-dom';
 import { FiCalendar, FiUsers, FiTool, FiClipboard, FiPieChart, FiMoreVertical, FiUserCheck, FiUserPlus } from 'react-icons/fi';
+import { useQuery } from '@tanstack/react-query';
+import { format } from 'date-fns';
 import AdminLayout from './Layout';
+import { adminService } from '../../services/adminService';
+import { visitService } from '../../services/visitService';
+import { serviceService } from '../../services/serviceService';
 
 const AdminDashboard = () => {
-  const [stats] = useState({
+  const cardBg = useColorModeValue('white', 'gray.700');
+  const statCardBg = useColorModeValue('gray.50', 'gray.700');
+
+  const { data: clients = [], isLoading: clientsLoading } = useQuery({
+    queryKey: ['clients'],
+    queryFn: () => adminService.getClients()
+  });
+
+  const { data: teams = [], isLoading: teamsLoading } = useQuery({
+    queryKey: ['teams'],
+    queryFn: () => adminService.getTeams()
+  });
+
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
+    queryKey: ['services'],
+    queryFn: () => serviceService.getServices()
+  });
+
+  const { data: visits = [], isLoading: visitsLoading } = useQuery({
+    queryKey: ['visits'],
+    queryFn: () => visitService.getVisits()
+  });
+
+  const stats = {
     agendamentos: {
-      total: 124,
-      pendentes: 45,
-      concluidos: 79,
+      total: visits.length,
+      pendentes: visits.filter(v => v.status === 'SCHEDULED').length,
+      concluidos: visits.filter(v => v.status === 'COMPLETED').length,
       crescimento: '+23%'
     },
     clientes: {
-      total: 87,
-      novos: 12,
+      total: clients.length,
+      novos: clients.filter(c => {
+        const createdAt = new Date(c.createdAt);
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        return createdAt > oneMonthAgo;
+      }).length,
       crescimento: '+15%'
     },
     equipes: {
-      total: 8,
-      ativas: 7
+      total: teams.length,
+      ativas: teams.filter(t => t.active).length
     },
     servicos: {
-      total: 15
+      total: services.length
     }
-  });
+  };
 
-  const cardBg = useColorModeValue('white', 'gray.700');
-  const statCardBg = useColorModeValue('gray.50', 'gray.700');
+  if (visitsLoading || teamsLoading || servicesLoading || clientsLoading) {
+    return (
+      <AdminLayout>
+        <Center h="100vh">
+          <Spinner size="xl" color="blue.500" />
+        </Center>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -141,16 +183,16 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardBody>
               <VStack spacing={4} align="stretch">
-                {[1, 2, 3].map((_, index) => (
-                  <Box key={index} p={3} borderWidth="1px" borderRadius="md">
+                {visits.slice(0, 3).map((visit) => (
+                  <Box key={visit.id} p={3} borderWidth="1px" borderRadius="md">
                     <Flex justify="space-between">
                       <VStack align="start" spacing={1}>
-                        <Text fontWeight="bold">Cliente {index + 1}</Text>
-                        <Text fontSize="sm" color="gray.500">Serviço de Instalação</Text>
+                        <Text fontWeight="bold">{visit.client?.name || 'Cliente não encontrado'}</Text>
+                        <Text fontSize="sm" color="gray.500">{visit.service?.name || 'Serviço não encontrado'}</Text>
                       </VStack>
                       <VStack align="end" spacing={1}>
-                        <Text fontWeight="medium">Hoje, 14:00</Text>
-                        <Text fontSize="sm" color="blue.500">Equipe A</Text>
+                        <Text fontWeight="medium">{visit.scheduledDate ? format(new Date(visit.scheduledDate), 'dd/MM/yyyy HH:mm') : 'Data não definida'}</Text>
+                        <Text fontSize="sm" color="blue.500">{visit.team?.name || 'Equipe não encontrada'}</Text>
                       </VStack>
                     </Flex>
                   </Box>
@@ -183,14 +225,14 @@ const AdminDashboard = () => {
             </CardHeader>
             <CardBody>
               <VStack spacing={4} align="stretch">
-                {[1, 2, 3].map((_, index) => (
-                  <Box key={index} p={3} borderWidth="1px" borderRadius="md">
+                {teams.slice(0, 3).map((team) => (
+                  <Box key={team.id} p={3} borderWidth="1px" borderRadius="md">
                     <Flex justify="space-between">
                       <VStack align="start" spacing={1}>
-                        <Text fontWeight="bold">Equipe {String.fromCharCode(65 + index)}</Text>
-                        <Text fontSize="sm" color="gray.500">3 membros</Text>
+                        <Text fontWeight="bold">{team.name}</Text>
+                        <Text fontSize="sm" color="gray.500">{team.members.length} membros</Text>
                       </VStack>
-                      <Text color="green.500" fontWeight="medium">Ativa</Text>
+                      <Text color="green.500" fontWeight="medium">{team.active ? 'Ativa' : 'Inativa'}</Text>
                     </Flex>
                   </Box>
                 ))}
